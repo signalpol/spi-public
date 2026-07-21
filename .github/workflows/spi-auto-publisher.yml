@@ -1,0 +1,43 @@
+name: SPI Auto Publisher
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "incoming/manifest.json"
+      - "incoming/publication/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: spi-auto-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate and publish approved package
+        run: python publisher/publish.py
+
+      - name: Commit published archive
+        run: |
+          git config user.name "spi-publisher[bot]"
+          git config user.email "spi-publisher[bot]@users.noreply.github.com"
+          git add reports dashboards incoming
+          if git diff --cached --quiet; then
+            echo "No publication changes detected."
+            exit 0
+          fi
+          git commit -m "Publish approved SPI package"
+          git push
