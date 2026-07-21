@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "date": "2026-07-21",
+  "edition": "morning",
+  "approved": true,
+  "language": ["kr", "en"],
+  "files": [
+    "kr/report.md",
+    "en/report.md",
+    "kr/dashboard-election.png",
+    "kr/dashboard-conflict.png",
+    "kr/dashboard-signals.png",
+    "en/dashboard-election.png",
+    "en/dashboard-conflict.png",
+    "en/dashboard-signals.png"
+  ]
+}
