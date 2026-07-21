@@ -1,14 +1,22 @@
 name: SPI Auto Publisher
 
+# Spec: SPI Auto Publisher Specification v1.0 (Candidate), Sec.12
+# B-method: workflow creates artifacts only; it does not commit or push.
+
 on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (true/false)"
+        required: false
+        default: "false"
   push:
     branches: [main]
     paths:
       - "incoming/manifest.json"
-  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: spi-auto-publisher
@@ -18,25 +26,29 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
 
-      - name: Validate and publish approved package
-        run: python publisher/publish.py
-
-      - name: Commit published archive
+      - name: Run Publisher
         run: |
-          git config user.name "spi-publisher[bot]"
-          git config user.email "spi-publisher[bot]@users.noreply.github.com"
-          git add reports dashboards incoming
-          if git diff --cached --quiet; then
-            echo "No publication changes detected."
-            exit 0
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python publisher/publish.py --manifest incoming/manifest.json --dry-run
+          else
+            python publisher/publish.py --manifest incoming/manifest.json
           fi
-          git commit -m "Publish approved SPI package"
-          git push
+
+      - name: Upload publication artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spi-publication-result
+          path: |
+            publication/
+            archive/
+            logs/
+          if-no-files-found: warn
+          retention-days: 30
