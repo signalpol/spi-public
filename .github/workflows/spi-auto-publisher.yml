@@ -2,6 +2,7 @@ name: SPI Auto Publisher
 
 # Spec: SPI Auto Publisher Specification v1.0 (Candidate), Sec.12
 # B-method: workflow creates artifacts only; it does not commit or push.
+# Safety rule: pushes to incoming/manifest.json always run as dry-run.
 
 on:
   workflow_dispatch:
@@ -36,7 +37,7 @@ jobs:
 
       - name: Run Publisher
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python publisher/publish.py --manifest incoming/manifest.json --dry-run
           else
             python publisher/publish.py --manifest incoming/manifest.json
