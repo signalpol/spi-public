@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "date": "2026-07-21",
+  "edition": "morning",
+  "approved": true,
+  "reports": [
+    {"language": "KR", "file": "morning-KR.md"},
+    {"language": "EN", "file": "morning-EN.md"}
+  ],
+  "dashboards": [
+    {"type": "election", "language": "KR", "file": "election-KR.png"},
+    {"type": "election", "language": "EN", "file": "election-EN.png"},
+    {"type": "conflicts", "language": "KR", "file": "conflicts-KR.png"},
+    {"type": "conflicts", "language": "EN", "file": "conflicts-EN.png"},
+    {"type": "signals", "language": "KR", "file": "signals-KR.png"},
+    {"type": "signals", "language": "EN", "file": "signals-EN.png"}
+  ]
+}
