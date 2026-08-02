@@ -1,0 +1,10 @@
+# Director-only approval paths. AI/automation accounts must never be
+# granted approval on changes to these paths. Effective only once
+# Branch Protection's "Require review from Code Owners" is enabled by
+# the Director in the GitHub UI (NOT yet applied as of this PR --
+# see docs/production/SPI_Production_Approval_Contract_v0.4.md).
+
+/production_rollback/*/rollback_approval.json    @REPLACE_WITH_DIRECTOR_GITHUB_LOGIN
+
+# incoming/** is intentionally NOT listed here -- it is the automation-
+# allowed path that the Manifest Bridge workflow writes to.
