@@ -1,17 +1,37 @@
 {
   "version": "1.0",
-  "date": "2026-07-21",
+  "mode": "fast",
+  "date": "2026-08-04",
   "edition": "morning",
   "approved": true,
-  "language": ["kr", "en"],
+  "content_sha256": "8482d8b5262ff5933157ff1fd785d543fdef5e3bf75f64377e3e46379a142793",
+  "template_version": "spi-signals-1600x900-v1",
   "files": [
     "kr/report.md",
-    "en/report.md",
-    "kr/dashboard-election.png",
-    "kr/dashboard-conflict.png",
     "kr/dashboard-signals.png",
-    "en/dashboard-election.png",
-    "en/dashboard-conflict.png",
+    "en/report.md",
     "en/dashboard-signals.png"
+  ],
+  "file_integrity": [
+    {
+      "path": "kr/report.md",
+      "sha256": "ea045848bd9505b4752463d05d66b47dbe8ce9f56c99689cddfdf2ed2b45f23b",
+      "bytes": 2786
+    },
+    {
+      "path": "kr/dashboard-signals.png",
+      "sha256": "8eaa2a42b4be5a8f809a6645a7874d1cb1cc35b8346f55766371d541140c034a",
+      "bytes": 182729
+    },
+    {
+      "path": "en/report.md",
+      "sha256": "2fb690bc5a016036527f90ccf254dddc2495edf8e9567ee711665daa84c61d5f",
+      "bytes": 2643
+    },
+    {
+      "path": "en/dashboard-signals.png",
+      "sha256": "21551daa19b684178a0a59f4cac4c3e73938251f9e87fd52370389f7597d9bd4",
+      "bytes": 168388
+    }
   ]
 }
