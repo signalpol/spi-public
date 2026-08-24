@@ -1,0 +1,10 @@
+name: Actions Runner Diagnostic
+on:
+  pull_request:
+    paths:
+      - 'actions-runner-diagnostic-trigger.txt'
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ACTIONS_RUNNER_OK
