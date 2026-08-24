@@ -28,21 +28,29 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import geopandas as gpd, pyogrio
+          import geopandas as gpd, pyogrio, re
           def gdb(root): return str(next(Path(root).rglob('*.gdb')))
-          def extract(src, source_field, output_field, out):
+          def extract(src, congress, output_field, out):
+              seen=[]
               for layer,_ in pyogrio.list_layers(src):
                   try: s=gpd.read_file(src,layer=layer,rows=1)
-                  except Exception: continue
-                  if source_field in s.columns:
+                  except Exception as e:
+                      print('SKIP',layer,type(e).__name__); continue
+                  cols=list(map(str,s.columns)); seen.append((str(layer),cols))
+                  print('LAYER',layer,'COLS',cols)
+                  candidates=[c for c in cols if re.search(r'CD|CONG|DIST',c,re.I) and congress in c]
+                  if not candidates and re.search(r'congress|cd',str(layer),re.I):
+                      candidates=[c for c in cols if re.search(r'CD|CONG|DIST',c,re.I)]
+                  if candidates:
+                      source_field=candidates[0]
                       g=gpd.read_file(src,layer=layer)
-                      state=next((c for c in ['STATEFP','STATEFP20','STATE'] if c in g.columns),None)
-                      if not state: raise SystemExit('state field missing in '+layer)
-                      q=g[[state,source_field,'geometry']].rename(columns={state:'STATEFP',source_field:output_field})
-                      q.to_file(out,driver='GPKG'); print(source_field,layer,len(q)); return
-              raise SystemExit('layer not found '+source_field)
-          extract(gdb('.tmp/census/cd119'),'CD119','CD119FP','.tmp/census/cd119.gpkg')
-          extract(gdb('.tmp/census/cd120'),'CD120','CD120FP','.tmp/census/cd120.gpkg')
+                      state=next((c for c in ['STATEFP','STATEFP20','STATEFP10','STATE'] if c in g.columns),None)
+                      if state:
+                          q=g[[state,source_field,'geometry']].rename(columns={state:'STATEFP',source_field:output_field})
+                          q.to_file(out,driver='GPKG'); print('SELECTED',congress,layer,source_field,'ROWS',len(q)); return
+              raise SystemExit('no congressional layer detected for '+congress+'; seen='+repr(seen))
+          extract(gdb('.tmp/census/cd119'),'119','CD119FP','.tmp/census/cd119.gpkg')
+          extract(gdb('.tmp/census/cd120'),'120','CD120FP','.tmp/census/cd120.gpkg')
           PY
       - name: Build population-weighted 119-to-120 crosswalk
         run: |
