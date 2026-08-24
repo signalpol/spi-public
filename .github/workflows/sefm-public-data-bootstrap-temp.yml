@@ -28,27 +28,24 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import geopandas as gpd, pyogrio, re
+          import geopandas as gpd, pyogrio
           def gdb(root): return str(next(Path(root).rglob('*.gdb')))
           def extract(src, congress, output_field, out):
-              seen=[]
-              for layer,_ in pyogrio.list_layers(src):
-                  try: s=gpd.read_file(src,layer=layer,rows=1)
-                  except Exception as e:
-                      print('SKIP',layer,type(e).__name__); continue
-                  cols=list(map(str,s.columns)); seen.append((str(layer),cols))
-                  print('LAYER',layer,'COLS',cols)
-                  candidates=[c for c in cols if re.search(r'CD|CONG|DIST',c,re.I) and congress in c]
-                  if not candidates and re.search(r'congress|cd',str(layer),re.I):
-                      candidates=[c for c in cols if re.search(r'CD|CONG|DIST',c,re.I)]
-                  if candidates:
-                      source_field=candidates[0]
-                      g=gpd.read_file(src,layer=layer)
-                      state=next((c for c in ['STATEFP','STATEFP20','STATEFP10','STATE'] if c in g.columns),None)
-                      if state:
-                          q=g[[state,source_field,'geometry']].rename(columns={state:'STATEFP',source_field:output_field})
-                          q.to_file(out,driver='GPKG'); print('SELECTED',congress,layer,source_field,'ROWS',len(q)); return
-              raise SystemExit('no congressional layer detected for '+congress+'; seen='+repr(seen))
+              layers={str(x[0]) for x in pyogrio.list_layers(src)}
+              if 'Congressional_Districts' not in layers:
+                  raise SystemExit('Congressional_Districts layer missing: '+repr(sorted(layers)))
+              g=gpd.read_file(src,layer='Congressional_Districts')
+              need={'GEOID','CDSESSN','geometry'}
+              if not need.issubset(g.columns): raise SystemExit('schema mismatch '+repr(list(g.columns)))
+              sessions=set(g.CDSESSN.astype(str).str.extract(r'(\d+)')[0].dropna())
+              if congress not in sessions: raise SystemExit(f'expected CDSESSN {congress}; found {sessions}')
+              geoid=g.GEOID.astype(str).str.replace(r'\D','',regex=True).str.zfill(4)
+              q=g[['geometry']].copy()
+              q['STATEFP']=geoid.str[:2]
+              q[output_field]=geoid.str[-2:]
+              if q.STATEFP.str.len().ne(2).any() or q[output_field].str.len().ne(2).any(): raise SystemExit('bad GEOID parse')
+              q[['STATEFP',output_field,'geometry']].to_file(out,driver='GPKG')
+              print('SELECTED',congress,'ROWS',len(q),'STATES',q.STATEFP.nunique(),'DISTRICTS',q[output_field].nunique())
           extract(gdb('.tmp/census/cd119'),'119','CD119FP','.tmp/census/cd119.gpkg')
           extract(gdb('.tmp/census/cd120'),'120','CD120FP','.tmp/census/cd120.gpkg')
           PY
