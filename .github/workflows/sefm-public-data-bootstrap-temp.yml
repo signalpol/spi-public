@@ -1,0 +1,65 @@
+name: SEFM Public-Source Data Bootstrap TEMP
+on:
+  pull_request:
+    paths:
+      - 'sefm-public-data-bootstrap-trigger.txt'
+permissions:
+  contents: write
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas numpy requests geopandas pyogrio shapely
+      - name: Download official Census legislative GDBs
+        run: |
+          mkdir -p .tmp/census generated/sefm-ge-us
+          curl -fL --retry 4 -o .tmp/census/cd119.zip https://www2.census.gov/geo/tiger/TGRGDB24/tlgdb_2024_a_us_legislative.gdb.zip
+          curl -fL --retry 4 -o .tmp/census/cd120.zip https://www2.census.gov/geo/tiger/TGRGDB26/tlgdb_2026_us_legislative.gdb.zip
+          unzip -q .tmp/census/cd119.zip -d .tmp/census/cd119
+          unzip -q .tmp/census/cd120.zip -d .tmp/census/cd120
+      - name: Extract congressional district layers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import geopandas as gpd, pyogrio
+          def gdb(root): return str(next(Path(root).rglob('*.gdb')))
+          def extract(src, field, out):
+              for layer,_ in pyogrio.list_layers(src):
+                  try: s=gpd.read_file(src,layer=layer,rows=1)
+                  except Exception: continue
+                  if field in s.columns:
+                      g=gpd.read_file(src,layer=layer)
+                      g[[c for c in ['STATEFP',field,'geometry'] if c in g.columns]].to_file(out,driver='GPKG'); print(field,layer,len(g)); return
+              raise SystemExit('layer not found '+field)
+          extract(gdb('.tmp/census/cd119'),'CD119','.tmp/census/cd119.gpkg')
+          extract(gdb('.tmp/census/cd120'),'CD120','.tmp/census/cd120.gpkg')
+          PY
+      - name: Build population-weighted 119-to-120 crosswalk
+        run: |
+          python temp/sefm-bootstrap/prepare_redrawn_2020_blocks.py --out .tmp/census/blocks.gpkg
+          python temp/sefm-bootstrap/build_crosswalk.py --blocks .tmp/census/blocks.gpkg --cd119 .tmp/census/cd119.gpkg --cd120 .tmp/census/cd120.gpkg --out generated/sefm-ge-us/crosswalk_119_120_population.csv
+      - name: Build historical and current feature inputs
+        run: python temp/sefm-bootstrap/build_inputs.py --crosswalk generated/sefm-ge-us/crosswalk_119_120_population.csv --outdir generated/sefm-ge-us
+      - name: Public-data QA
+        run: |
+          python - <<'PY'
+          import pandas as pd, json
+          h=pd.read_csv('generated/sefm-ge-us/house_historical_training.csv'); c=pd.read_csv('generated/sefm-ge-us/house_2026_features.csv'); x=pd.read_csv('generated/sefm-ge-us/crosswalk_119_120_population.csv'); s=pd.read_csv('generated/sefm-ge-us/fec_2026_district_status.csv')
+          q={'historical_rows':len(h),'cycles':sorted(h.cycle.unique().tolist()),'current_rows':len(c),'current_unique':c.district_id.nunique(),'crosswalk_pairs':len(x),'crosswalk_targets':x.target_district_id.nunique(),'fec_unresolved':int((s.status!='READY').sum())}
+          open('generated/sefm-ge-us/PUBLIC_DATA_QA.json','w').write(json.dumps(q,indent=2)); print(json.dumps(q,indent=2))
+          assert len(c)==435 and c.district_id.nunique()==435
+          PY
+      - name: Persist generated public-source inputs to verification branch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add generated/sefm-ge-us
+          git commit -m 'Generate SEFM public-source input snapshot [skip ci]'
+          git push origin HEAD:${GITHUB_HEAD_REF}
