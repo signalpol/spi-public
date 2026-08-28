@@ -1,0 +1,35 @@
+{
+  "schema_version": "SEFM-GE-GE2024-OFFICIAL-RESULTS-v1",
+  "election": "22nd National Assembly Election",
+  "election_date": "2024-04-10",
+  "regions": 17,
+  "districts": 254,
+  "candidates": 693,
+  "winner_uniqueness_failures": 0,
+  "district_seat_summary": {
+    "국민의힘": 90,
+    "더불어민주당": 161,
+    "진보당": 1,
+    "개혁신당": 1,
+    "새로운미래": 1
+  },
+  "note": "All 17 regions were confirmed as 22nd-election files. This public manifest is a post-election evaluation artifact and must not be used as a forecast input.",
+  "artifacts": {
+    "district_results.csv": {
+      "sha256": "937515f43e5ac2ad63a5e0b8e91d2dc8c832b66860bd033d951e0b00816a64ce",
+      "bytes": 62955
+    },
+    "candidate_results.csv": {
+      "sha256": "f4bfd8875a1ed609af7496fa811985946f22921615b75b217ed1207a14f7265a",
+      "bytes": 78987
+    },
+    "district_results.json": {
+      "sha256": "a46746215d746275668a72bbac35d09dc09fef47cf2a0cd7ef1770c2a7d62332",
+      "bytes": 179779
+    },
+    "SEFM_GE_22nd_Election_Official_Results_Normalized.xlsx": {
+      "sha256": "916bbd6762df6f63de68060d4cd3e15d40129d4c60bc7f0bc4e181496065b24b",
+      "bytes": 76757
+    }
+  }
+}
