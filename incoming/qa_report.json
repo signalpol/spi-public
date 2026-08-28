@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "schema_version": "1.0",
+  "template_version": "spi-signals-1600x900-v1",
+  "content_sha256": "8482d8b5262ff5933157ff1fd785d543fdef5e3bf75f64377e3e46379a142793",
+  "checks": {
+    "approval_bound_to_content": true,
+    "human_verification_recorded": true,
+    "four_signals_present": true,
+    "primary_or_two_source_policy": true,
+    "sources_and_kst_timestamps_valid": true,
+    "date_weekday_consistent": true,
+    "kr_en_numeric_consistency": true,
+    "dashboard_content_reflects_report": true,
+    "fixed_dimensions_1600x900": true,
+    "overflow_guard": true,
+    "file_hashes_recorded": true
+  }
+}

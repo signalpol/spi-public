@@ -1,0 +1,36 @@
+name: Daily Fast Acceptance Gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-real-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate real incoming package
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from publisher.gate import check_gate
+
+          incoming = Path("incoming")
+          manifest = json.loads((incoming / "manifest.json").read_text(encoding="utf-8"))
+          result = check_gate(manifest, incoming)
+          print(json.dumps({
+              "passed": result.passed,
+              "reason": result.reason,
+              "checked": result.checked,
+          }, ensure_ascii=False, indent=2))
+          if not result.passed:
+              raise SystemExit(result.reason)
+          PY
