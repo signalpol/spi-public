@@ -1,0 +1,73 @@
+name: Manifest Bridge v0.3
+
+# NOT for production execution yet. Director instruction (2026-08-02):
+# Bridge must not be run in production until Branch Protection +
+# CODEOWNERS are actually applied and independently verified. This
+# workflow exists in this feature branch as workflow_dispatch-only and
+# is not invoked as part of this PR's review process.
+
+on:
+  workflow_dispatch:
+    inputs:
+      production_date:
+        description: "Production date to bridge (YYYY-MM-DD, KST)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  verify_and_bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Full-package verify, stage public subset
+        env:
+          SPI_SPIN_READONLY_TOKEN: ${{ secrets.SPI_SPIN_READONLY_TOKEN }}
+          PRODUCTION_DATE: ${{ github.event.inputs.production_date }}
+          DIRECTOR_GITHUB_LOGIN: ${{ secrets.DIRECTOR_GITHUB_LOGIN }}
+        run: python scripts/manifest_bridge.py
+      - name: Replace incoming/ from staging
+        run: |
+          rm -rf incoming/kr incoming/en incoming/manifest.json
+          mv .bridge_staging/kr incoming/kr
+          mv .bridge_staging/en incoming/en
+          mv .bridge_staging/manifest.json incoming/manifest.json
+          rm -rf .bridge_staging
+      - name: Enforce commit scope, then commit and push
+        run: |
+          git config user.name "spi-manifest-bridge-bot"
+          git config user.email "bot@signalpol.local"
+          git add -A incoming/
+          CHANGED=$(git diff --cached --name-only)
+          if [ -z "$CHANGED" ]; then echo "No changes"; exit 0; fi
+          OUT_OF_SCOPE=$(echo "$CHANGED" | grep -vE '^incoming/(kr|en)/|^incoming/manifest\.json$' || true)
+          if [ -n "$OUT_OF_SCOPE" ]; then
+            echo "BLOCKED: staged changes outside incoming/ scope:"
+            echo "$OUT_OF_SCOPE"
+            git reset
+            exit 1
+          fi
+          git commit -m "bridge: stage ${{ github.event.inputs.production_date }} (approved_source_commit-verified)"
+          git push origin main
+
+# ---------------------------------------------------------------------
+# NOTE (Claude1, 2026-08-02): This file is stored with a .yml.draft
+# extension OUTSIDE .github/workflows/ because the session's fine-grained
+# PAT lacks the "Workflows" permission scope required to write files
+# under .github/workflows/ (Contents:Read-and-write alone is NOT
+# sufficient for that specific path -- confirmed by an actual rejected
+# push: "refusing to allow a Personal Access Token to create or update
+# workflow ... without `workflow` scope").
+#
+# To activate: either (a) re-scope the PAT to include "Workflows: Read
+# and write" and move this file to .github/workflows/manifest-bridge.yml
+# in a follow-up commit, or (b) the Director adds it manually via the
+# GitHub UI/local git (a human GitHub session does not have this
+# restriction).
+# ---------------------------------------------------------------------
